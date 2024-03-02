@@ -1,14 +1,19 @@
 package org.example;
 
+import java.util.Arrays;
+import java.util.Random;
+
 public class ValueCalculator {
 
     public static void main(String[] args) throws InterruptedException {
         int[] mas = new int[1000000];
 
         ValueCalculator valueCalculator = new ValueCalculator();
-        long time1 = valueCalculator.consumedTime(mas, 1);
-        long time2 = valueCalculator.consumedTime(mas, 2);
-        System.out.println("Время 1 = " + time1 + "\n" + "Время 2 = " + time2);
+        long timeOneThread = valueCalculator.consumedTime(mas, 1);
+        long timeTwoThreads = valueCalculator.consumedTime(mas, 2);
+        System.out.println("Time spent using 1 thread = " + timeOneThread + "\n" + "Time spent using 2 thread = " + timeTwoThreads);
+        long timeMaxValue = valueCalculator.maxValue(valueCalculator.shuffling(mas), 2);//change number of threads if you need
+        System.out.println("Time spent to find max value " + timeMaxValue);
     }
 
     void showMassive(int[] mas) {
@@ -63,4 +68,46 @@ public class ValueCalculator {
         long finish = System.currentTimeMillis();
         return (finish - start);
     }
+
+    int[] shuffling(int[] mas) {
+        for (int i = 0; i < 1000000; i++) {
+            mas[i] = i;
+        }
+        Random rnd = new Random();
+        for (int i = 0; i < mas.length; i++) {
+            int randomIndex = rnd.nextInt(mas.length);
+            int temp = mas[i];
+            mas[i] = mas[randomIndex];
+            mas[randomIndex] = temp;
+
+        }
+        return mas;
+    }
+
+    long maxValue(int[] mas, int numberOfThreads) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        int[] maxValues = new int[numberOfThreads];
+        Thread[] threads = new Thread[numberOfThreads];
+        int chunk = mas.length / numberOfThreads;
+
+        for (int i = 0; i < numberOfThreads; i++) {
+            int start = i * chunk;
+            int end = (i == numberOfThreads - 1) ? mas.length : (i + 1) * chunk;
+            final int threadIndex = i;
+            threads[i] = new Thread(() -> {
+                maxValues[threadIndex] = Arrays.stream(mas, start, end).max().orElse(Integer.MIN_VALUE);
+            });
+            threads[i].start();
+        }
+        for (Thread thread : threads) {
+            thread.join();
+        }
+
+        int globalMax = Arrays.stream(maxValues).max().orElse(Integer.MIN_VALUE);
+        System.out.println("Max number = " + globalMax);
+        long finishTime = System.currentTimeMillis();
+
+        return finishTime - startTime;
+    }
+
 }
